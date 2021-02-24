@@ -5,20 +5,21 @@ from geometry_msgs.msg import Pose, Twist, PoseArray
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
 from rclpy.qos import DurabilityPolicy, QoSProfile, HistoryPolicy, ReliabilityPolicy
+from std_msgs.msg import Int16, Bool
 import numpy as np
 
 import math
  
 
-def quaternion_to_euler(q):
+def euler_from_quaternion(q):
         (x, y, z, w) = (q[0], q[1], q[2], q[3])
         t0 = +2.0 * (w * x + y * z)
         t1 = +1.0 - 2.0 * (x * x + y * y)
-        roll = math.atan2(t0, t1)
+        roll_x = math.atan2(t0, t1)
         t2 = +2.0 * (w * y - z * x)
         t2 = +1.0 if t2 > +1.0 else t2
         t2 = -1.0 if t2 < -1.0 else t2
-        pitch = math.asin(t2)
+        pitch_y = math.asin(t2)
         t3 = +2.0 * (w * z + x * y)
         t4 = +1.0 - 2.0 * (y * y + z * z)
         yaw_z = math.atan2(t3, t4)
@@ -51,12 +52,12 @@ class Controller(Node):
         self.state = 0
         self.move = False
 
-        self.robot_odometry_subscription = self.create_subscription(Odometry, 'odom', self.odometry_callback, 25)
+        # self.robot_odometry_subscription = self.create_subscription(Odometry, 'odom', self.odometry_callback, 25)
 
         # Changing control law
         self.isNear = False
         self.distance_near = 3
-        self.distance_threshold = 0.8
+        self.distance_threshold = 1.0
 
         # Waypoint and robot position
         self.X = np.zeros((3, 1))
@@ -71,15 +72,15 @@ class Controller(Node):
     def odometry_callback(self, data):
         self.X[0, 0] = data.pose.pose.position.x
         self.X[1, 0] = data.pose.pose.position.y
-        (roll, pitch, yaw) = euler_from_quaternion (data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w)
+        (roll, pitch, yaw) = euler_from_quaternion([data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w])
         self.X[2, 0] = yaw
 
     def robot_angle_callback(self, data):
-        (roll, pitch, yaw) = euler_from_quaternion (data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w)
+        (roll, pitch, yaw) = euler_from_quaternion([data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w])
         self.X[2, 0] = yaw
 
     def waypoint_callback(self, data):
-        (roll, pitch, yaw) = euler_from_quaternion (data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w)
+        (roll, pitch, yaw) = euler_from_quaternion([data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w])
         self.B = np.array([[data.position.x], [data.position.y], [yaw]])
         R = np.array([[np.cos(yaw), np.sin(yaw), 0], [-np.sin(yaw), np.cos(yaw), 0], [0, 0, 1]])
         self.A = self.B + R @ np.array([[- self.distance_near], [0], [0]])
@@ -135,7 +136,7 @@ class Controller(Node):
                 if self.isNear:
                     if np.linalg.norm(e[:2]) < self.distance_threshold:
                         K_speed = 0.0
-                        K_rotation = 0.5
+                        K_rotation = 0.0
                     else:
                         K_speed = 0.5
                         K_rotation = 0.5
@@ -143,9 +144,9 @@ class Controller(Node):
                     speed = K_speed * np.linalg.norm(e[:2])
                     theta = K_rotation * sawtooth(self.B[2, 0] - self.X[2, 0])
                 else :
-                    K_speed = 0.4
+                    K_speed = 1.0
                     K_rotation = 1.5
-                    speed = K_speed * 3.0
+                    speed = K_speed * 1.0
                     theta = K_rotation * sawtooth(np.arctan2(e[1, 0], e[0, 0]) - self.X[2, 0])
 
             # Goto area
@@ -168,7 +169,7 @@ class Controller(Node):
         # Publishing
         self.publisher.publish(msg)
         self.get_logger().info("Robot: {}, {}, {}".format(self.X[0, 0], self.X[1, 0], self.X[2, 0]))
-        self.get_logger().info("Error: {}, {}, {}".format(self.isNear, np.linalg.norm((self.B-self.X)[:2]), self.X[2, 0]-self.B[2, 0]))
+        self.get_logger().info("Error: {}, {}, {}".format(self.isNear, np.linalg.norm((self.A-self.X)[:2]), self.X[2, 0]-self.B[2, 0]))
         self.get_logger().info("Publishing: {}, {}, {}".format(msg.linear.x, msg.linear.y, msg.angular.z))
 
 
