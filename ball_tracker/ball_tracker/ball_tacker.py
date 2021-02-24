@@ -20,6 +20,7 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 from geometry_msgs.msg import Pose, Twist, PoseArray
+import math
 
 
 
@@ -117,6 +118,16 @@ class TrackerPub(Node):
     def distance(self, x, y, x0, y0):
         return np.sqrt((x - x0)**2 + (y - y0)**2)
 
+    def euler_to_quaternion(self, r):
+        (yaw, pitch, roll) = (r[0], r[1], r[2])
+        qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+        qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
+        qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
+        qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+        return [qx, qy, qz, qw]
+
+
+
     def image_callback(self, imgmsg):
         br = CvBridge()
         ball_poses = PoseArray()
@@ -152,7 +163,7 @@ class TrackerPub(Node):
                 yaw = np.arctan2(vec[1], vec[0])
             
             print(yaw)
-            q = self.quaternion_from_euler(0, 0, yaw)
+            q = self.quaternion_from_euler([yaw, 0, 0])
             ball_pose.position.x = ball[0]
             ball_pose.position.y = ball[1]
             ball_pose.orientation.x = q[0]
@@ -169,27 +180,7 @@ class TrackerPub(Node):
         
         # cv2.imwrite('/tmp/post_im.png', img)
 
-    def quaternion_from_euler(self, roll, pitch, yaw):
-        """
-        Converts euler roll, pitch, yaw to quaternion (w in last place)
-        quat = [x, y, z, w]
-        Bellow should be replaced when porting for ROS 2 Python tf_conversions is done.
-        """
-        import math
-        cy = math.cos(yaw * 0.5)
-        sy = math.sin(yaw * 0.5)
-        cp = math.cos(pitch * 0.5)
-        sp = math.sin(pitch * 0.5)
-        cr = math.cos(roll * 0.5)
-        sr = math.sin(roll * 0.5)
-
-        q = [0] * 4
-        q[0] = cy * cp * cr + sy * sp * sr
-        q[1] = cy * cp * sr - sy * sp * cr
-        q[2] = sy * cp * sr + cy * sp * cr
-        q[3] = sy * cp * cr - cy * sp * sr
-
-        return q
+    
 
     def getBallPosition(self, centers):
         tr_matrix = np.array([[400, -688]]).T
