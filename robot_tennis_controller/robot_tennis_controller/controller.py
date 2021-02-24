@@ -22,7 +22,7 @@ def quaternion_to_euler(q):
         t3 = +2.0 * (w * z + x * y)
         t4 = +1.0 - 2.0 * (y * y + z * z)
         yaw = math.atan2(t3, t4)
-        return [yaw, pitch, roll]
+        return [roll, pitch, yaw]
 
 
 
@@ -71,18 +71,18 @@ class Controller(Node):
     def odometry_callback(self, data):
         self.X[0, 0] = data.pose.pose.position.x
         self.X[1, 0] = data.pose.pose.position.y
-        (roll, pitch, yaw) = euler_from_quaternion (data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w)
+        (roll, pitch, yaw) = quaternion_to_euler ([data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w])
         self.X[2, 0] = yaw
 
     def robot_angle_callback(self, data):
-        (roll, pitch, yaw) = euler_from_quaternion (data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w)
+        (roll, pitch, yaw) = quaternion_to_euler ([data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w])
         self.X[2, 0] = yaw
     
     def ball_position_callback(self, data):
         data = data.poses[0]
         print(data)
 
-        (roll, pitch, yaw) = euler_from_quaternion (data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w)
+        (roll, pitch, yaw) = quaternion_to_euler([data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w])
         self.B = np.array([[data.position.x], [data.position.y], [yaw]])
         R = np.array([[np.cos(yaw), np.sin(yaw), 0], [-np.sin(yaw), np.cos(yaw), 0], [0, 0, 1]])
         self.A = self.B + R @ np.array([[- self.distance_near], [0], [0]])

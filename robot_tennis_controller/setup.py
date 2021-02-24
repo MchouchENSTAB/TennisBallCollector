@@ -13,14 +13,15 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='quentin',
-    maintainer_email='quentin.brateau@ensta-bretagne.org',
+    maintainer='gwen',
+    maintainer_email='gwendal.priser@ensta-bretagne.org',
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'controller = robot_tennis_controller.controller:main',
+            'navigation = robot_tennis_controller.navigation:main'
         ],
     },
 )

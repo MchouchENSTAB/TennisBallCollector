@@ -118,7 +118,7 @@ class TrackerPub(Node):
     def distance(self, x, y, x0, y0):
         return np.sqrt((x - x0)**2 + (y - y0)**2)
 
-    def euler_to_quaternion(self, r):
+    def quaternion_from_euler(self, r):
         (yaw, pitch, roll) = (r[0], r[1], r[2])
         qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
         qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
@@ -162,7 +162,7 @@ class TrackerPub(Node):
                 vec = (base2[0] - ball[0], base2[1] - ball[1])
                 yaw = np.arctan2(vec[1], vec[0])
             
-            print(yaw)
+            # print(yaw)
             q = self.quaternion_from_euler([yaw, 0, 0])
             ball_pose.position.x = ball[0]
             ball_pose.position.y = ball[1]
