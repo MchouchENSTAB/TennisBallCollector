@@ -2,11 +2,17 @@
 
 ## Utilisation du package
 cloner le package
+```shell
 git clone https://github.com/MchouchENSTAB/TennisBallCollector/
+```
 
 compiler le workspace en se placant à la racine
+```shell
 colcon build --symlink-install
+```
+```shell
 source install/setup.bash
+```
 
 Afficher la piste de tennis et le robot
 voir https://github.com/MchouchENSTAB/TennisBallCollector/blob/master/robot_tennis_gazebo/readme.md
