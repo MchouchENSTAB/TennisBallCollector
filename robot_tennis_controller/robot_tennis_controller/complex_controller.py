@@ -29,10 +29,7 @@ def quaternion_to_euler(q):
 
 def sawtooth(x):
     return (x + np.pi) % (2*np.pi) - np.pi
-
-
-def distance(x, y, x0, y0):
-            return np.sqrt((x - x0)**2 + (y - y0)**2)
+    
 
 class Controller(Node):
 
@@ -120,7 +117,7 @@ class Controller(Node):
             theta = K_rotation * sawtooth(np.arctan2(e[1, 0], e[0, 0]) - self.X[2, 0])
 
         
-        
+
         # Building message
         msg = Twist()
         msg.linear.x = speed
@@ -128,9 +125,9 @@ class Controller(Node):
 
         # Publishing
         self.publisher.publish(msg)
-        self.get_logger().info(str(distance(self.B[0, 0], self.B[1, 0], self.X[0, 0], self.X[1, 0])))
-        #self.get_logger().info("Ball_Position: {}, {}, {}".format(self.B[0, 0],  self.B[1, 0], self.B[2, 0]))
-        #self.get_logger().info("Robot_Position: {}, {}".format(self.X[0, 0], self.X[1, 0]))
+        self.get_logger().info(str(self.B))
+        self.get_logger().info("Ball_Position: {}, {}, {}".format(self.B[0, 0],  self.B[1, 0], self.B[2, 0]))
+        self.get_logger().info("Robot_Position: {}, {}".format(self.X[0, 0], self.X[1, 0]))
         #self.get_logger().info("Error: {}, {}, {}".format(self.isNear, speed, theta))
         #self.get_logger().info("Publishing: {}, {}, {}".format(msg.linear.x, msg.linear.y, msg.angular.z))
 
