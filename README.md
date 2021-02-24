@@ -1,5 +1,17 @@
 # Tennis Ball Collector
 
+## Utilisation du package
+cloner le package
+git clone https://github.com/MchouchENSTAB/TennisBallCollector/
+
+compiler le workspace en se placant à la racine
+colcon build --symlink-install
+source install/setup.bash
+
+Afficher la piste de tennis et le robot
+voir https://github.com/MchouchENSTAB/TennisBallCollector/blob/master/robot_tennis_gazebo/readme.md
+
+
 ## Projet 
 
 ### Introduction
