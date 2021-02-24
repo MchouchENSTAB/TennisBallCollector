@@ -28,13 +28,8 @@ def euler_from_quaternion(x, y, z, w):
      
         t3 = +2.0 * (w * z + x * y)
         t4 = +1.0 - 2.0 * (y * y + z * z)
-<<<<<<< Updated upstream
         yaw_z = math.atan2(t3, t4)
         return [roll_x, pitch_y, yaw_z]
-=======
-        yaw = math.atan2(t3, t4)
-        return [roll, pitch, yaw]
->>>>>>> Stashed changes
 
 
 def sawtooth(x):
