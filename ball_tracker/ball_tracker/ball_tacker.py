@@ -20,6 +20,7 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 from geometry_msgs.msg import Pose, Twist, PoseArray
+import math
 
 
 
@@ -94,7 +95,7 @@ class Tracker:
         else:
             self.xoffset = 0
             self.yoffset = 0
-        print("nb detected balls : ", count)
+        # print("nb detected balls : ", count)
         return centers, frame
 
 class TrackerPub(Node):
@@ -111,25 +112,41 @@ class TrackerPub(Node):
         self.image_subscription = self.create_subscription(sensor_msgs.msg.Image, '/zenith_camera/image_raw', self.image_callback, qos_profile)
 
         self.balls_publisher = self.create_publisher(PoseArray, 'balls_pose', qos_profile)
+        self.robot_publisher = self.create_publisher(Pose, 'robot_pose', qos_profile)
     
     
     def distance(self, x, y, x0, y0):
         return np.sqrt((x - x0)**2 + (y - y0)**2)
 
+    def quaternion_from_euler(self, r):
+        (yaw, pitch, roll) = (r[0], r[1], r[2])
+        qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+        qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
+        qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
+        qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+        return [qx, qy, qz, qw]
+
+
+
     def image_callback(self, imgmsg):
         br = CvBridge()
         ball_poses = PoseArray()
+        robot_pose = Pose()
         ball_poses.header._frame_id ='map'
         img = br.imgmsg_to_cv2(imgmsg, "bgr8")
         ball_centers, robot_center, frame = self.computerVision(img)
         
         
-        print("Ball center : ", ball_centers)
-        print("Robot center : ", robot_center)
+        # print("Ball center : ", ball_centers)
+        # print("Robot center : ", robot_center)
 
         
         base1 = (7, 13)
         base2 = (-7, -13)
+
+        robot_pose.position.x = robot_center[0][0]
+        robot_pose.position.y = robot_center[0][1]
+
 
 
         for ball in ball_centers:
@@ -138,60 +155,32 @@ class TrackerPub(Node):
             dis2 = self.distance(ball[0], ball[1], base2[0], base2[1])
             
             if dis1 < dis2:
-                # print('base : ', 1)
                 vec = (base1[0] - ball[0], base1[1] - ball[1])
                 yaw = np.arctan2(vec[1], vec[0])
 
             else:
-                # print('base : ', 2)
-
                 vec = (base2[0] - ball[0], base2[1] - ball[1])
-                # print('vec ', vec)
                 yaw = np.arctan2(vec[1], vec[0])
             
-            # print('orientation : ', yaw)
-            q = self.quaternion_from_euler(0, 0, yaw)
-
-
+            print(yaw)
+            q = self.quaternion_from_euler([yaw, 0, 0])
             ball_pose.position.x = ball[0]
             ball_pose.position.y = ball[1]
-            
-            
             ball_pose.orientation.x = q[0]
             ball_pose.orientation.y = q[1]
             ball_pose.orientation.z = q[2]
             ball_pose.orientation.w = q[3]
-            
             ball_poses.poses.append(ball_pose)
 
         
         self.balls_publisher.publish(ball_poses)
-        # cv2.imshow("Frame", frame)
-        # cv2.waitKey(6)
+        self.robot_publisher.publish(robot_pose)
+        cv2.imshow("Frame", frame)
+        cv2.waitKey(6)
         
         # cv2.imwrite('/tmp/post_im.png', img)
 
-    def quaternion_from_euler(self, roll, pitch, yaw):
-        """
-        Converts euler roll, pitch, yaw to quaternion (w in last place)
-        quat = [x, y, z, w]
-        Bellow should be replaced when porting for ROS 2 Python tf_conversions is done.
-        """
-        import math
-        cy = math.cos(yaw * 0.5)
-        sy = math.sin(yaw * 0.5)
-        cp = math.cos(pitch * 0.5)
-        sp = math.sin(pitch * 0.5)
-        cr = math.cos(roll * 0.5)
-        sr = math.sin(roll * 0.5)
-
-        q = [0] * 4
-        q[0] = cy * cp * cr + sy * sp * sr
-        q[1] = cy * cp * sr - sy * sp * cr
-        q[2] = sy * cp * sr + cy * sp * cr
-        q[3] = sy * cp * cr - cy * sp * sr
-
-        return q
+    
 
     def getBallPosition(self, centers):
         tr_matrix = np.array([[400, -688]]).T
