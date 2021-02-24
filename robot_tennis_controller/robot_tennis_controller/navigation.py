@@ -1,7 +1,7 @@
 import numpy as np
 
 import rclpy
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseArray
 from std_msgs.msg import Bool
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
@@ -41,14 +41,14 @@ class TennisCollectorNavigationSimple(Node):
         # PUBLISHER SUBSCIPTER INITIALIZATION
         #-------------------------------------------------------------------
         self.ball_sub = self.create_subscription(
-            Pose,
-            'ball',
+            PoseArray,
+            'balls_pose',
             self.ball_callback,
             qos)
         
         self.rob_sub = self.create_subscription(
             Pose,
-            'robot',
+            'robot_pose',
             self.rob_callback,
             qos)
 

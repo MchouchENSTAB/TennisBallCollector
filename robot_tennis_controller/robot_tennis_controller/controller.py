@@ -1,10 +1,10 @@
 import rclpy
 from rclpy.node import Node
 
-from geometry_msgs.msg import Pose, Twist
+from geometry_msgs.msg import Pose, Twist, PoseArray
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
-
+from rclpy.qos import DurabilityPolicy, QoSProfile, HistoryPolicy, ReliabilityPolicy
 import numpy as np
 
 import math
@@ -45,11 +45,15 @@ class Controller(Node):
 
         # Publisher
         self.publisher = self.create_publisher(Twist, 'cmd_vel', 25)
-
+        qos_profile = QoSProfile(
+            history=HistoryPolicy.KEEP_ALL, depth=5,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE
+        )
         # Subscriber
-        self.robot_subscription = self.create_subscription(Pose, 'pose_rob', self.robot_position_callback, 25)
+        self.robot_subscription = self.create_subscription(Pose, 'robot_pose', self.robot_position_callback, 25)
         self.robot_angle_subscription = self.create_subscription(Imu, 'imu_plugin/out', self.robot_angle_callback, 25)
-        self.ball_subscription = self.create_subscription(Pose, 'pose_ball', self.ball_position_callback, 25)
+        self.ball_subscription = self.create_subscription(PoseArray, 'balls_pose', self.ball_position_callback, qos_profile)
 
         self.robot_odometry_subscription = self.create_subscription(Odometry, 'odom', self.odometry_callback, 25)
 
@@ -65,7 +69,7 @@ class Controller(Node):
         self.A[0, 0] = - self.distance_near
 
     def robot_position_callback(self, data):
-        self.X[0, 0] = data.position.x
+        self.X[0, 0] = data.position.x  
         self.X[1, 0] = data.position.y
 
     def odometry_callback(self, data):
@@ -79,6 +83,9 @@ class Controller(Node):
         self.X[2, 0] = yaw
     
     def ball_position_callback(self, data):
+        data = data.poses[0]
+        print(data)
+
         (roll, pitch, yaw) = euler_from_quaternion (data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w)
         self.B = np.array([[data.position.x], [data.position.y], [yaw]])
         R = np.array([[np.cos(yaw), np.sin(yaw), 0], [-np.sin(yaw), np.cos(yaw), 0], [0, 0, 1]])
@@ -122,9 +129,11 @@ class Controller(Node):
 
         # Publishing
         self.publisher.publish(msg)
-        self.get_logger().info("Robot: {}, {}, {}".format(self.X[0, 0], self.X[1, 0], self.X[2, 0]))
-        self.get_logger().info("Error: {}, {}, {}".format(self.isNear, speed, theta))
-        self.get_logger().info("Publishing: {}, {}, {}".format(msg.linear.x, msg.linear.y, msg.angular.z))
+        self.get_logger().info(str(self.B))
+        self.get_logger().info("Ball_Position: {}, {}, {}".format(self.B[0, 0],  self.B[1, 0], self.B[2, 0]))
+        self.get_logger().info("Robot_Position: {}, {}".format(self.X[0, 0], self.X[1, 0]))
+        #self.get_logger().info("Error: {}, {}, {}".format(self.isNear, speed, theta))
+        #self.get_logger().info("Publishing: {}, {}, {}".format(msg.linear.x, msg.linear.y, msg.angular.z))
 
 
 def main(args=None):
