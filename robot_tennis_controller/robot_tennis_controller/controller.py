@@ -25,6 +25,7 @@ def quaternion_to_euler(q):
      
         return roll_x, pitch_y, yaw_z # in radians
 
+
 def sawtooth(x):
     return (x + np.pi) % (2*np.pi) - np.pi
 
